@@ -1,3 +1,1 @@
-[submodule "Drivers/tinyusb"]
-	path = Drivers/tinyusb
-	url = https://github.com/hathach/tinyusb
+
