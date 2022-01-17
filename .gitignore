@@ -1,0 +1,8 @@
+
+Debug/
+
+bijou_ctrl_rev_4 Debug.launch
+
+STM32F405VGTX_FLASH.ld
+
+STM32F405VGTX_RAM.ld
