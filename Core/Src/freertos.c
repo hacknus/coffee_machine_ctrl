@@ -350,8 +350,6 @@ void StartOledTask(void *argument)
 	do
 	{
 		target_temp = (float)BOILER_PID.target;
-		water_temp = temperature1;
-		ambient_temp = temperature5;
 
 		u8g_SetFont(&u8g, u8g_font_profont12);//set current font
 		sprintf(buffer, "T: %3.1fC T1: %3.1fC", target_temp, temperature1);
@@ -473,7 +471,7 @@ void StartStateMachine(void *argument)
   /* USER CODE BEGIN StartStateMachine */
 	uint16_t BOILER_PWR = 0;
 	uint16_t STEAMER_PWR = 0;
-	HAL_GPIO_Write(BLDC_DIR_GPIO_Port, BLDC_DIR_Pin) = 1;
+	HAL_GPIO_WritePin(BLDC_DIR_GPIO_Port, BLDC_DIR_Pin, 1);
 	STEAMER.active = 0;
   /* Infinite loop */
   for(;;)
@@ -489,18 +487,18 @@ void StartStateMachine(void *argument)
 			  BOILER_PWR = BOILER_PID.pwr;
 			  STEAMER_PWR = STEAMER_PID.pwr;
 			  // check if boiler is ready
-			  if ((&BOILER.temperature < &BOILER_PID.target * 1.05)
-							  && (&BOILER.temperature > &BOILER_PID.target * 0.95)){
-				  &BOILER.state = READY;
+			  if ((BOILER.temperature < BOILER_PID.target * 1.05)
+							  && (BOILER.temperature > BOILER_PID.target * 0.95)){
+				  BOILER.state = READY;
 			  }
 			  // check if steamer is not active or ready
-			  if ((&STEAMER.active == 0) ||
-					  ((&STEAMER.temperature < &STEAMER_PID.target * 1.05)
-							  && (&STEAMER.temperature > &STEAMER_PID.target * 0.95))){
-				  &STEAMER.state = READY;
+			  if ((STEAMER.active == 0) ||
+					  ((STEAMER.temperature < STEAMER_PID.target * 1.05)
+							  && (STEAMER.temperature > STEAMER_PID.target * 0.95))){
+				  STEAMER.state = READY;
 			  }
 
-			  if ((&STEAMER.state == READY) && (&BOILER.state == READY)){
+			  if ((STEAMER.state == READY) && (BOILER.state == READY)){
 				  SYS.state = READY;
 			  }
 			  break;
@@ -538,7 +536,7 @@ void StartStateMachine(void *argument)
 	  TIM3->CCR1 = BOILER_PWR;
 	  TIM3->CCR2 = STEAMER_PWR;
 	  TIM3->CCR3 = PUMP.motor_v;
-	  HAL_GPIO_Write(BLDC_EN_GPIO_Port, BLDC_EN_Pin) = PUMP.motor_en;
+	  HAL_GPIO_WritePin(BLDC_EN_GPIO_Port, BLDC_EN_Pin, PUMP.motor_en);
 
 	  SYS.lever_button = 0;
 	  SYS.steam_button = 0;
