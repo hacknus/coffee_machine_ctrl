@@ -32,6 +32,7 @@
 #include <sys/times.h>
 #include "usbd_cdc_if.h"
 #include <string.h>
+#include "main.h"
 
 
 
@@ -82,7 +83,14 @@ __attribute__((weak)) int _write(int file, char *ptr, int len)
 {
 
 	CDC_Transmit_FS((uint8_t*)ptr, len);
-
+/*
+	int DataIdx;
+	for (DataIdx = 0; DataIdx < len; DataIdx++)
+	{
+		//__io_putchar(*ptr++);
+		ITM_SendChar((*ptr++));
+	}
+	*/
 	//	int DataIdx;
 //
 //	for (DataIdx = 0; DataIdx < len; DataIdx++)

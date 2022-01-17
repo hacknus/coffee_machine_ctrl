@@ -20,14 +20,16 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "usb_otg.h"
+#include "adc.h"
+#include "i2c.h"
+#include "spi.h"
+#include "tim.h"
+#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "string.h"
-#include "bsp/board.h"
-#include "tusb.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,12 +91,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USB_OTG_FS_PCD_Init();
+  MX_ADC1_Init();
+  MX_I2C1_Init();
+  MX_SPI1_Init();
+  MX_SPI2_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  uint8_t cnt = 0;
-  HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin,0);
-  HAL_Delay(1000);
-  printf("setup c = %d\r\n", cnt);
 
   /* USER CODE END 2 */
 
@@ -109,20 +114,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  //printf("testing... ");
-	  //printf("test 1 \n");
-	  char msg[100] = {0} ;
-	  sprintf(msg, "hello \n");
-	  USBD_StatusTypeDef stat = 0;
-	  stat = CDC_Transmit_FS((uint8_t*)msg, sizeof(msg));
 
-	  if (stat == USBD_OK){
-		  HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, 0);
-		  HAL_Delay(100); //delay 100ms
-	  } else {
-		  HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, 1);
-		  HAL_Delay(100); //delay 100ms
-	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -179,7 +171,7 @@ void SystemClock_Config(void)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
+  * @note   This function is called  when TIM14 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -190,7 +182,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
+  if (htim->Instance == TIM14) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

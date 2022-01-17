@@ -60,6 +60,36 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define STAT_Pin GPIO_PIN_2
 #define STAT_GPIO_Port GPIOE
+#define SPI2_CS_Pin GPIO_PIN_4
+#define SPI2_CS_GPIO_Port GPIOA
+#define SW_Pin GPIO_PIN_0
+#define SW_GPIO_Port GPIOB
+#define LED_SW1_Pin GPIO_PIN_2
+#define LED_SW1_GPIO_Port GPIOB
+#define STEAM_Pin GPIO_PIN_7
+#define STEAM_GPIO_Port GPIOE
+#define LVL_Pin GPIO_PIN_8
+#define LVL_GPIO_Port GPIOE
+#define ENC_SW_Pin GPIO_PIN_10
+#define ENC_SW_GPIO_Port GPIOE
+#define WL_Pin GPIO_PIN_13
+#define WL_GPIO_Port GPIOE
+#define FLT_Pin GPIO_PIN_14
+#define FLT_GPIO_Port GPIOE
+#define SPI2_CS4_Pin GPIO_PIN_10
+#define SPI2_CS4_GPIO_Port GPIOD
+#define SPI2_CS3_Pin GPIO_PIN_11
+#define SPI2_CS3_GPIO_Port GPIOD
+#define SPI2_CS2_Pin GPIO_PIN_12
+#define SPI2_CS2_GPIO_Port GPIOD
+#define SPI2_CS1_Pin GPIO_PIN_13
+#define SPI2_CS1_GPIO_Port GPIOD
+#define SPI2_CS5_Pin GPIO_PIN_14
+#define SPI2_CS5_GPIO_Port GPIOD
+#define BLDC_DIR_Pin GPIO_PIN_9
+#define BLDC_DIR_GPIO_Port GPIOC
+#define BLDC_EN_Pin GPIO_PIN_8
+#define BLDC_EN_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
