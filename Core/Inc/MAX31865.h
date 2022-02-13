@@ -17,11 +17,12 @@
 typedef struct {
     GPIO_TypeDef* CE_PORT;
     uint16_t CE_PIN;
+    uint16_t offset;
     SPI_HandleTypeDef* hspi;
     uint8_t WIRES;
 } MAX31865_SPI;
 
-void MAX31865_init(MAX31865_SPI* spi, GPIO_TypeDef* CE_PORT, uint16_t CE_PIN, SPI_HandleTypeDef* hspi, uint8_t WIRES);
+void MAX31865_init(MAX31865_SPI* spi, GPIO_TypeDef* CE_PORT, uint16_t CE_PIN, SPI_HandleTypeDef* hspi, uint8_t WIRES, uint16_t cable_resistance);
 float MAX31865_temperature(MAX31865_SPI* spi);
 uint8_t MAX31865_configuration(MAX31865_SPI* spi);
 uint16_t MAX31865_raw_resistance(MAX31865_SPI* spi);

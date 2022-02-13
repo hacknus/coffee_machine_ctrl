@@ -33,6 +33,16 @@
     .water_sensor = 0,       \
    }
 
+#define GUI_INIT() \
+  { \
+    .target_set = 90,       \
+    .pwr_set = 0,       \
+    .enc_mode = PWR_MODE,       \
+    .lever_button_state = NOT_PRESSED,       \
+    .steam_button_state = NOT_PRESSED,       \
+    .enc_button_state = NOT_PRESSED,       \
+   }
+
 struct BOILER_dev {
     uint16_t heat_pwr;
     uint8_t state;
@@ -53,12 +63,32 @@ struct SYS_dev {
 	uint8_t water_sensor;
 };
 
+struct GUI_dev {
+	uint16_t target_set;
+	uint16_t pwr_set;
+	uint8_t enc_mode;
+	uint8_t lever_button_state;
+	uint8_t steam_button_state;
+	uint8_t enc_button_state;
+};
+
 enum state_t{
-	IDLE=1,
+	IDLE = 1,
 	HEATING,
 	READY,
 	PRE_INFUSE,
 	EXTRACTING,
+	DEBUG_EXTRACTION,
+};
+
+enum button_state_t{
+	NOT_PRESSED = 11,
+	PRESSED,
+};
+
+enum enc_mode_t{
+	PWR_MODE = 21,
+	TARGET_MODE,
 };
 
 

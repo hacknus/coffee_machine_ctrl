@@ -91,7 +91,7 @@ void Error_Handler(void);
 #define BLDC_EN_Pin GPIO_PIN_8
 #define BLDC_EN_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
-
+#define DEBUG 1
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -23,7 +23,7 @@ float compute(struct PID_dev * pid, float temperature){
     pid->error = pid->currError;
     pid->prevTime = pid->currTime;
     float PIDvalue = pid->p + pid->i + pid->d;
-    pid->pwr = (uint16_t)PIDvalue;
+    pid->pwr = (uint16_t)(PIDvalue / 64.0);
     return PIDvalue;
 }
 

@@ -44,6 +44,8 @@ float MAX31865_temperature(MAX31865_SPI* spi) {
 	// Calculate the actual resistance of the sensor
 	float resistance = ((float) data * MAX31865_RREF) / MAX31865_FACTOR;
 
+	resistance = resistance - spi->offset;
+
 	// Calculate the temperature from the measured resistance
 	float temp = ((resistance / 100) - 1) / MAX31865_ALPHA;
 
@@ -76,12 +78,13 @@ uint8_t MAX31865_configuration(MAX31865_SPI* spi){
 	return buffer;
 }
 
-void MAX31865_init(MAX31865_SPI* spi, GPIO_TypeDef* CE_PORT, uint16_t CE_PIN, SPI_HandleTypeDef* hspi, uint8_t WIRES){
+void MAX31865_init(MAX31865_SPI* spi, GPIO_TypeDef* CE_PORT, uint16_t CE_PIN, SPI_HandleTypeDef* hspi, uint8_t WIRES, uint16_t cable_resistance){
 	// Declare structure
 	spi->CE_PIN = CE_PIN;
 	spi->CE_PORT = CE_PORT;
 	spi->hspi = hspi;
 	spi->WIRES = WIRES;
+	spi->offset = cable_resistance;
 
 	// CE in reset state
 	HAL_GPIO_WritePin(spi->CE_PORT, spi->CE_PIN, GPIO_PIN_SET);

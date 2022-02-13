@@ -167,6 +167,15 @@ standard names. */
 #define USE_CUSTOM_SYSTICK_HANDLER_IMPLEMENTATION 0
 
 /* USER CODE BEGIN Defines */
+
+#define TEMPERATURE_READOUT_INTERVAL 50
+#define PID_INTERVAL 100
+#define OLED_INTERVAL 10
+#define SLEEP_INTERVAL 50
+#define BLDC_INTERVAL 100
+#define STATE_MACHINE_INTERVAL 10
+#define GUI_INTERVAL 10
+
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 /* USER CODE END Defines */
 

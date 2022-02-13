@@ -61,6 +61,7 @@ MAX31865_SPI max31865_t5;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+struct GUI_dev GUI = GUI_INIT();
 struct SYS_dev SYS = SYS_INIT();
 struct PID_dev BOILER_PID = PID_BOILER_INIT();
 struct PID_dev STEAMER_PID = PID_STEAMER_INIT();
@@ -120,6 +121,13 @@ const osThreadAttr_t statemachineTas_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for guiTask */
+osThreadId_t guiTaskHandle;
+const osThreadAttr_t guiTask_attributes = {
+  .name = "guiTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -132,6 +140,7 @@ void StartOledTask(void *argument);
 void StartSleepTask(void *argument);
 void StartBldcTask(void *argument);
 void StartStateMachine(void *argument);
+void StartGuiTask(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -146,8 +155,8 @@ void MX_FREERTOS_Init(void) {
   // adc init
 
 
-  HAL_ADC_Stop_DMA(&hadc1);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, 2);
+  //HAL_ADC_Stop_DMA(&hadc1);
+  //HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, 2);
 
   // encoder
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
@@ -167,15 +176,14 @@ void MX_FREERTOS_Init(void) {
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
 
-  HAL_GPIO_WritePin(BLDC_DIR_GPIO_Port, BLDC_DIR_Pin, 0);
-  HAL_GPIO_WritePin(BLDC_EN_GPIO_Port, BLDC_EN_Pin, 0);
-
   TIM2->CCR4 = 0;
   TIM3->CCR1 = 0;
   TIM3->CCR2 = 0;
   TIM3->CCR3 = 0;
   TIM3->CCR4 = 0;
   TIM4->CCR4 = 0;
+
+  TIM1->CNT = 0;
 
 
   /* USER CODE END Init */
@@ -214,6 +222,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of statemachineTas */
   statemachineTasHandle = osThreadNew(StartStateMachine, NULL, &statemachineTas_attributes);
+
+  /* creation of guiTask */
+  guiTaskHandle = osThreadNew(StartGuiTask, NULL, &guiTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -265,11 +276,11 @@ void StartTemperatureTask(void *argument)
   HAL_GPIO_WritePin(WL_GPIO_Port, WL_Pin, 1);
   osDelay(100);
 
-  MAX31865_init(&max31865_t1, SPI2_CS1_GPIO_Port, SPI2_CS1_Pin, &hspi2, WIRE2);
-  MAX31865_init(&max31865_t2, SPI2_CS2_GPIO_Port, SPI2_CS2_Pin, &hspi2, WIRE2);
-  MAX31865_init(&max31865_t3, SPI2_CS3_GPIO_Port, SPI2_CS3_Pin, &hspi2, WIRE2);
-  MAX31865_init(&max31865_t4, SPI2_CS4_GPIO_Port, SPI2_CS4_Pin, &hspi2, WIRE2);
-  MAX31865_init(&max31865_t5, SPI2_CS5_GPIO_Port, SPI2_CS5_Pin, &hspi2, WIRE2);
+  MAX31865_init(&max31865_t1, SPI2_CS1_GPIO_Port, SPI2_CS1_Pin, &hspi2, WIRE2, 0);
+  MAX31865_init(&max31865_t2, SPI2_CS2_GPIO_Port, SPI2_CS2_Pin, &hspi2, WIRE2, 3.7 + 0.7);
+  MAX31865_init(&max31865_t3, SPI2_CS3_GPIO_Port, SPI2_CS3_Pin, &hspi2, WIRE2, 2.2 + 0.9);
+  MAX31865_init(&max31865_t4, SPI2_CS4_GPIO_Port, SPI2_CS4_Pin, &hspi2, WIRE2, 0);
+  MAX31865_init(&max31865_t5, SPI2_CS5_GPIO_Port, SPI2_CS5_Pin, &hspi2, WIRE2, 0);
 
   osDelay(100);
 
@@ -277,7 +288,7 @@ void StartTemperatureTask(void *argument)
 
   osDelay(2000);
 
-
+  uint32_t counter = 0;
   for(;;)
   {
 	HAL_GPIO_WritePin(WL_GPIO_Port, WL_Pin, 1);
@@ -286,13 +297,18 @@ void StartTemperatureTask(void *argument)
 	temperature3 = MAX31865_temperature(&max31865_t3);
 	temperature4 = MAX31865_temperature(&max31865_t4);
 	temperature5 = MAX31865_temperature(&max31865_t5);
-	compute(&BOILER_PID, temperature1);
-	compute(&STEAMER_PID, temperature2);
+	//BOILER.temperature = (float)temperature1;
+	if (counter % (PID_INTERVAL / TEMPERATURE_READOUT_INTERVAL) == 0){
+		compute(&BOILER_PID, temperature3);
+		compute(&STEAMER_PID, temperature2);
+	}
 
-	printf("%lu, %3.2f, %3.2f, %3.2f, %3.2f, %3.2f\n", HAL_GetTick(), temperature1, temperature2, temperature3, temperature4, temperature5);
-	osDelay(25);
+	printf("%lu, %3.2f, %3.2f, %3.2f, %3.2f, %3.2f, %u\n",
+			HAL_GetTick(), temperature1, temperature2, temperature3, temperature4, temperature5, BOILER_PID.pwr);
+	osDelay(TEMPERATURE_READOUT_INTERVAL / 2);
 	HAL_GPIO_WritePin(WL_GPIO_Port, WL_Pin, 0);
-    osDelay(25);
+    osDelay(TEMPERATURE_READOUT_INTERVAL / 2);
+    counter++;
   }
   /* USER CODE END StartTemperatureTask */
 }
@@ -309,6 +325,7 @@ void StartOledTask(void *argument)
   /* USER CODE BEGIN StartOledTask */
   /* Infinite loop */
   char buffer[20];
+  char state_names[][20] = {"IDLE", "HEATING", "READY", "PRE_INFUSE", "EXTRACTING", "DEBUG_EXTRACTION"};
 
   static u8g_t u8g;
   u8g_InitComFn(&u8g, &u8g_dev_ssd1306_128x64_i2c, u8g_com_hw_i2c_fn); //here we initialise our u8glib driver
@@ -340,30 +357,31 @@ void StartOledTask(void *argument)
   u8g_Delay(1000);
 
 
-  float target_temp = 0;
 
   /* Infinite loop */
   for(;;)
   {
-	//set(&CTRL, (float)(TIM2->CNT));
+
 	u8g_FirstPage(&u8g);
 	do
 	{
-		target_temp = (float)BOILER_PID.target;
+		u8g_SetFont(&u8g, u8g_font_profont11); //set current font
+		sprintf(buffer, "T: %dC PROBE: %3.1fC", GUI.target_set, temperature1);
+		u8g_DrawStr(&u8g, 0, 11, buffer);
+		sprintf(buffer, "GH: %3.1fC TB: %3.1fC", temperature2, temperature3);
+		u8g_DrawStr(&u8g, 0, 22, buffer);
+		sprintf(buffer, "P: %ld D: %ld", (int32_t)BOILER_PID.p, (int32_t)BOILER_PID.d);
+		u8g_DrawStr(&u8g, 0, 32, buffer);
+		sprintf(buffer, "hpwr: %ld pwr: %ld", (int32_t)TIM3->CCR1, (int32_t)TIM3->CCR3);
+		u8g_DrawStr(&u8g, 0, 44, buffer);
+		sprintf(buffer, "c: %u p: %u s: %d", (uint16_t)TIM1->CNT, (uint16_t)PUMP.motor_v, SYS.state);
+		u8g_DrawStr(&u8g, 0, 55, buffer);
+		u8g_SetFont(&u8g, u8g_font_04b_03b); //set current font
+		u8g_DrawStr(&u8g, 0, 63, state_names[SYS.state - IDLE]);
 
-		u8g_SetFont(&u8g, u8g_font_profont12);//set current font
-		sprintf(buffer, "T: %3.1fC T1: %3.1fC", target_temp, temperature1);
-		u8g_DrawStr(&u8g, 0, 12, buffer);
-		sprintf(buffer, "T2: %3.1fC T3: %3.1fC", temperature2, temperature3);
-		u8g_DrawStr(&u8g, 0, 24, buffer);
-		sprintf(buffer, "T4: %3.1fC T5: %3.1fC", temperature4, temperature5);
-		u8g_DrawStr(&u8g, 0, 36, buffer);
-		sprintf(buffer, "P: %ld pwr: %ld", (int32_t)BOILER_PID.p, (int32_t)TIM3->CCR1);
-		u8g_DrawStr(&u8g, 0, 53, buffer);
-		sprintf(buffer, "D: %u hpwr: %ld", (uint16_t)TIM1->CNT, (int32_t)TIM3->CCR3);
-		u8g_DrawStr(&u8g, 0, 63, buffer);
 	} while ( u8g_NextPage(&u8g) );
-	osDelay(10);
+
+	osDelay(OLED_INTERVAL);
   }
   /* USER CODE END StartOledTask */
 }
@@ -382,10 +400,13 @@ void StartSleepTask(void *argument)
   uint16_t cnt = 0;
   for(;;)
   {
-	cnt += 4;
+	cnt += 20;
 	switch(SYS.state){
+		case IDLE:
+			TIM3->CCR4 = 0;
+			break;
 		case HEATING:
-			TIM3->CCR4 = (uint16_t) (512 - 512 * cosf(cnt / 512.0 * M_PI)); // LED1
+			TIM3->CCR4 = (uint16_t) (512 - 512 * cosf((float)cnt / 512.0 * M_PI)); // LED1
 			break;
 		case READY:
 			TIM3->CCR4 = 1023;
@@ -393,22 +414,22 @@ void StartSleepTask(void *argument)
 		case PRE_INFUSE:
 			// fast blinking
 			TIM3->CCR4 = 1023;
-			osDelay(500);
+			osDelay(250);
 			TIM3->CCR4 = 0;
-			osDelay(400);
+			osDelay(250 - SLEEP_INTERVAL);
 			break;
 		case EXTRACTING:
 			// slow blinking
 			TIM3->CCR4 = 1023;
-			osDelay(1000);
+			osDelay(500);
 			TIM3->CCR4 = 0;
-			osDelay(900);
+			osDelay(500 - SLEEP_INTERVAL);
 			break;
 		default:
 			TIM3->CCR4 = 0;
 			break;
 	}
-    osDelay(100);
+    osDelay(SLEEP_INTERVAL);
   }
   /* USER CODE END StartSleepTask */
 }
@@ -433,7 +454,7 @@ void StartBldcTask(void *argument)
 			  break;
 		  case HEATING:
 			  PUMP.motor_en = 1;
-			  PUMP.motor_v = 50;
+			  PUMP.motor_v = (uint16_t)(1024.0 / 100 * GUI.pwr_set);
 			  break;
 		  case PRE_INFUSE:
 			  PUMP.motor_en = 1;
@@ -443,17 +464,20 @@ void StartBldcTask(void *argument)
 			  break;
 		  case EXTRACTING:
 			  PUMP.motor_en = 1;
-			  PUMP.motor_v = 512;
+			  PUMP.motor_v = 1024;
 			  osDelay(25000);
 			  SYS.state = IDLE;
 			  break;
+		  case DEBUG_EXTRACTION:
+			  PUMP.motor_en = 1;
+			  PUMP.motor_v = (uint16_t)(1024.0 / 100 * GUI.pwr_set);
 		  default:
 			  PUMP.motor_en = 0;
 			  PUMP.motor_v = 0;
 			  PUMP.state = IDLE;
 			  break;
 	  }
-	  osDelay(100);
+	  osDelay(BLDC_INTERVAL);
 
   }
   /* USER CODE END StartBldcTask */
@@ -471,7 +495,8 @@ void StartStateMachine(void *argument)
   /* USER CODE BEGIN StartStateMachine */
 	uint16_t BOILER_PWR = 0;
 	uint16_t STEAMER_PWR = 0;
-	HAL_GPIO_WritePin(BLDC_DIR_GPIO_Port, BLDC_DIR_Pin, 1);
+	HAL_GPIO_WritePin(BLDC_DIR_GPIO_Port, BLDC_DIR_Pin, 0);
+	HAL_GPIO_WritePin(BLDC_EN_GPIO_Port, BLDC_EN_Pin, 1);
 	STEAMER.active = 0;
   /* Infinite loop */
   for(;;)
@@ -481,6 +506,7 @@ void StartStateMachine(void *argument)
 			  PUMP.state = IDLE;
 			  BOILER_PWR = 0;
 			  STEAMER_PWR = 0;
+			  SYS.state = HEATING;
 			  break;
 		  case HEATING:
 			  PUMP.state = HEATING;
@@ -506,8 +532,12 @@ void StartStateMachine(void *argument)
 			  PUMP.state = IDLE;
 			  BOILER_PWR = BOILER_PID.pwr;
 			  STEAMER_PWR = STEAMER_PID.pwr;
-			  if (SYS.lever_button == 1){
-				  SYS.state = PRE_INFUSE;
+			  if (GUI.lever_button_state == PRESSED){
+				  if (DEBUG){
+					  SYS.state = DEBUG_EXTRACTION;
+				  } else {
+					  SYS.state = PRE_INFUSE;
+				  }
 			  }
 			  break;
 		  case PRE_INFUSE:
@@ -519,6 +549,15 @@ void StartStateMachine(void *argument)
 			  PUMP.state = EXTRACTING;
 			  BOILER_PWR = 1023;
 			  STEAMER_PWR = 1023;
+			  if ((SYS.lever_button == 0) || (PUMP.state == IDLE)){
+				  PUMP.state = IDLE;
+				  SYS.state = HEATING;
+			  }
+			  break;
+		  case DEBUG_EXTRACTION:
+			  PUMP.state = EXTRACTING;
+			  BOILER_PWR = (uint16_t)(1024.0 / 100 * GUI.pwr_set);
+			  STEAMER_PWR = (uint16_t)(1024.0 / 100 * GUI.pwr_set);
 			  if ((SYS.lever_button == 0) || (PUMP.state == IDLE)){
 				  PUMP.state = IDLE;
 				  SYS.state = HEATING;
@@ -536,14 +575,99 @@ void StartStateMachine(void *argument)
 	  TIM3->CCR1 = BOILER_PWR;
 	  TIM3->CCR2 = STEAMER_PWR;
 	  TIM3->CCR3 = PUMP.motor_v;
-	  HAL_GPIO_WritePin(BLDC_EN_GPIO_Port, BLDC_EN_Pin, PUMP.motor_en);
+	  HAL_GPIO_WritePin(BLDC_EN_GPIO_Port, BLDC_EN_Pin, 1 - PUMP.motor_en);
 
-	  SYS.lever_button = 0;
-	  SYS.steam_button = 0;
-	  SYS.water_sensor = 0;
-	  osDelay(10);
+	  osDelay(STATE_MACHINE_INTERVAL);
   }
   /* USER CODE END StartStateMachine */
+}
+
+/* USER CODE BEGIN Header_StartGuiTask */
+/**
+* @brief Function implementing the guiTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartGuiTask */
+void StartGuiTask(void *argument)
+{
+  /* USER CODE BEGIN StartGuiTask */
+  /* Infinite loop */
+  for(;;)
+  {
+	switch (GUI.enc_mode){
+		case PWR_MODE:
+			if (GUI.enc_button_state == PRESSED){
+				GUI.enc_mode = TARGET_MODE;
+				TIM1->CNT = GUI.target_set - 20;
+			} else {
+				GUI.pwr_set = TIM1->CNT;
+			}
+			break;
+		case TARGET_MODE:
+			if (GUI.enc_button_state == PRESSED){
+				GUI.enc_mode = PWR_MODE;
+				TIM1->CNT = GUI.pwr_set;
+			} else {
+				GUI.target_set = TIM1->CNT + 20;
+				BOILER_PID.target = (float)GUI.target_set;
+			}
+			break;
+		default:
+			GUI.enc_mode = PWR_MODE;
+			break;
+	}
+
+	switch (GUI.enc_button_state){
+		case NOT_PRESSED:
+			if (HAL_GPIO_ReadPin(ENC_SW_GPIO_Port, ENC_SW_Pin) == 0){
+				GUI.enc_button_state = PRESSED;
+			}
+			break;
+		case PRESSED:
+			if (HAL_GPIO_ReadPin(ENC_SW_GPIO_Port, ENC_SW_Pin) == 1){
+				GUI.enc_button_state = NOT_PRESSED;
+			}
+			break;
+		default:
+			GUI.enc_button_state = NOT_PRESSED;
+			break;
+	}
+
+	switch (GUI.lever_button_state){
+		case NOT_PRESSED:
+			if (HAL_GPIO_ReadPin(SW_GPIO_Port, SW_Pin) == 0){
+				GUI.lever_button_state = PRESSED;
+			}
+			break;
+		case PRESSED:
+			if (HAL_GPIO_ReadPin(SW_GPIO_Port, SW_Pin) == 1){
+				GUI.lever_button_state = NOT_PRESSED;
+			}
+			break;
+		default:
+			GUI.lever_button_state = NOT_PRESSED;
+			break;
+	}
+
+	switch (GUI.steam_button_state){
+		case NOT_PRESSED:
+			if (HAL_GPIO_ReadPin(STEAM_GPIO_Port, STEAM_Pin) == 0){
+				GUI.steam_button_state = PRESSED;
+			}
+			break;
+		case PRESSED:
+			if (HAL_GPIO_ReadPin(STEAM_GPIO_Port, STEAM_Pin) == 1){
+				GUI.steam_button_state = NOT_PRESSED;
+			}
+			break;
+		default:
+			GUI.steam_button_state = NOT_PRESSED;
+			break;
+	}
+    osDelay(GUI_INTERVAL);
+  }
+  /* USER CODE END StartGuiTask */
 }
 
 /* Private application code --------------------------------------------------*/

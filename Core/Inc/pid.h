@@ -7,14 +7,16 @@
 
 #include "main.h"
 
-#define PID_CALL 1000
+#define PID_P 1600
+#define PID_I 0
+#define PID_D 500
 
 #define PID_BOILER_INIT() \
   { \
-    .kp = 1400,       \
-    .ki = 0,       \
-    .kd = 500,       \
-    .target = 90,   \
+    .kp = PID_P,       \
+    .ki = PID_I,       \
+    .kd = PID_D,       \
+    .target = 95,   \
     .temperature = 0,    \
     .prevTime = 0,  \
     .currTime = 0, \
@@ -27,9 +29,9 @@
 
 #define PID_STEAMER_INIT() \
   { \
-    .kp = 1400,       \
-    .ki = 0,       \
-    .kd = 500,       \
+    .kp = PID_P,       \
+    .ki = PID_I,       \
+    .kd = PID_D,       \
     .target = 120,   \
     .temperature = 0,    \
     .prevTime = 0,  \
